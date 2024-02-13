@@ -1,0 +1,36 @@
+GET http://localhost:8000/api/entries/
+
+###
+
+GET http://127.0.0.1:8000/api/custom-function/
+Authorization: Token 9b115f2b95455b0024599950ceb73b5dc16eba83
+
+###
+GET http://localhost:8000/api/entries/1
+Authorization: Token af6caa206d8159afb6098e084219a1d80b420a44
+
+###
+PATCH  http://127.0.0.1:8000/user-request/4/
+Authorization: Token 9b115f2b95455b0024599950ceb73b5dc16eba83
+Content-Type: application/json
+
+{
+    "is_accepted":"P"
+} 
+
+
+###
+PUT  http://localhost:8000/api/entries/3/
+Authorization: Token af6caa206d8159afb6098e084219a1d80b420a44
+content-type: application/json
+
+{
+    "pattern":"[0-9]",
+    "test_string":["lesha"],
+    "user":"leshaa"
+}
+
+###
+DELETE  http://localhost:8000/api/entries/2/
+Authorization: Token af6caa206d8159afb6098e084219a1d80b420a44
+content-type: application/json

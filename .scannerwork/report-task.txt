@@ -1,0 +1,6 @@
+projectKey=SocialMediaApp_Django_Grp4:Master
+serverUrl=http://172.27.12.78:8000
+serverVersion=7.9.6.41879
+dashboardUrl=http://172.27.12.78:8000/dashboard?id=SocialMediaApp_Django_Grp4%3AMaster
+ceTaskId=AY2hvenp02ASefZCyh5u
+ceTaskUrl=http://172.27.12.78:8000/api/ce/task?id=AY2hvenp02ASefZCyh5u
