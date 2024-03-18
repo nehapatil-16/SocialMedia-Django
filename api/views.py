@@ -4,14 +4,11 @@ from rest_framework.views import APIView
 from django.db.models import Q
 from rest_framework import permissions
 from rest_framework.decorators import action
-from rest_framework.response import Response
 from django.http import JsonResponse
-from rest_framework import status
 from rest_framework.parsers import MultiPartParser,FormParser
-from rest_framework.response import Response
 # from rest_framework.generics import ListCreateAPIView, RetrieveAPIView
-
-from userCredential.models import Report, UserCredential, UserPost, UserProfile,FriendRequest,Friendship, Comment, Like, Chat
+from django.core.exceptions import ObjectDoesNotExist
+from userCredential.models import Report, UserCredential, UserPost, UserProfile,FriendRequest,Friendship, Comment, Like
 from api.serializers import (
     LikeSerializer,
     ReportSerializer,
@@ -23,7 +20,6 @@ from api.serializers import (
       UserPostSerializer,
       UserSerializer,
       CommentSerializer,
-      ChatsSerializer
       )
 from django.contrib.auth.models import User, auth
 from rest_framework.response import Response
@@ -33,6 +29,8 @@ from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth import authenticate, login
 from rest_framework.permissions import AllowAny
 from rest_framework.decorators import permission_classes, api_view
+
+
 
 class RegisterView(APIView):
     def post(self, request):
@@ -216,18 +214,22 @@ def get_comments(request):
     serializer = CommentSerializer(comments, many=True)
     return Response(serializer.data)
 
-class ChatsViewSet(viewsets.ModelViewSet):
-    queryset=Chat.objects.all()
-    serializer_class=ChatsSerializer
-    permission_classes= [permissions.IsAuthenticated]#session authetication
+# class LikeCreateAPIView(viewsets.ModelViewSet):
+#     queryset = UserPost.objects.all()
+#     serializer_class = UserPostSerializer
+#     permission_classes = [permissions.IsAuthenticated]  # Session authentication
 
-    def get_queryset(self):
-        user = self.request.query_params.get('user', None)
-        queryset = Chat.objects.all()
-
-        if user:
-            queryset = queryset.filter(user=user)
-        return queryset
+#     def get_queryset(self):
+#         user = self.request.query_params.get('user', None)
+#         queryset = UserPost.objects.all()
+#         if user:
+#             queryset = queryset.filter(user=user)
+#         return queryset
+    
+# class LikeDetailAPIView(viewsets.ModelViewSet):
+#     queryset = UserPost.objects.all()
+#     serializer_class = UserPostSerializer
+#     permission_classes = [permissions.IsAuthenticated]
 
   
 class LikeCreateAPIView(viewsets.ModelViewSet):
@@ -242,3 +244,61 @@ class LikeCreateAPIView(viewsets.ModelViewSet):
         serializer = self.get_serializer(liked_data, many=True)
         return Response(serializer.data)
     
+    # def get(self, request, user_id):
+    #     liked_post_ids = Like.objects.filter(user=user_id).values_list('id', flat=True)
+    #     liked_posts = UserPost.objects.filter(id__in=liked_post_ids)
+    #     serializer = LikeSerializer(liked_posts, many=True)
+    #     return Response(serializer.data, status=status.HTTP_200_OK)
+
+  # permission_classes= [permissions.IsAuthenticated]#session authetication
+
+    # def get_queryset(self):
+    #     user = self.request.query_params.get('user', None)
+    #     queryset = Like.objects.all()
+    #     if user:
+    #         queryset = queryset.filter(user=user)
+    #     return queryset
+      
+# @api_view(['GET'])
+# def get_likes(request):
+#     post_id = request.query_params.get('user_pos
+#     if post_id is not None:
+#         comments = Comment.objects.filter(user_post=post_id)
+#     else:
+#         comments = Comment.objects.all()
+#     serializer = CommentSerializer(comments, many=True)
+#     return Response(serializer.data)
+    
+
+
+#######Forget password ##########################
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def check_user_exists(request):
+    if request.method == 'POST':
+        email = request.data.get('email')
+        print(email)
+        username = request.data.get('username')
+        print(username)
+
+        
+        try:
+            user = User.objects.get( username=username, email=email)
+            return JsonResponse({'message': 'user exists'})
+        except ObjectDoesNotExist:
+            return JsonResponse({'message': 'user does not exist'})
+    # else:
+    #     return Response({'error': 'Invalid request method'}, status=400)    
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def update_password(request):
+    if request.method == 'POST':
+        new_password = request.data.get('newPassword')
+        username = request.data.get('username')
+        print(new_password)
+        user = User.objects.get(username=username)
+        user.set_password(new_password)
+        user.save()
+        return JsonResponse({'message': 'password updated'})
+##############################3
