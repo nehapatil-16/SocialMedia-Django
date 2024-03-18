@@ -9,8 +9,11 @@ from django.http import JsonResponse
 from rest_framework import status
 from rest_framework.parsers import MultiPartParser,FormParser
 from rest_framework.response import Response
-from userCredential.models import Report, UserCredential, UserPost, UserProfile,FriendRequest,Friendship, Comment
+# from rest_framework.generics import ListCreateAPIView, RetrieveAPIView
+
+from userCredential.models import Report, UserCredential, UserPost, UserProfile,FriendRequest,Friendship, Comment, Like, Chat
 from api.serializers import (
+    LikeSerializer,
     ReportSerializer,
     UserCredentialsSerializer, 
     UserPostSerializer,
@@ -20,8 +23,8 @@ from api.serializers import (
       UserPostSerializer,
       UserSerializer,
       CommentSerializer,
+      ChatsSerializer
       )
-from rest_framework.parsers import MultiPartParser, FormParser
 from django.contrib.auth.models import User, auth
 from rest_framework.response import Response
 from rest_framework import status
@@ -30,24 +33,6 @@ from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth import authenticate, login
 from rest_framework.permissions import AllowAny
 from rest_framework.decorators import permission_classes, api_view
-
-# @api_view(['GET'])
-# @permission_classes([AllowAny])
-# def get_all_users(request):
-#     users = User.objects.all()
-#     serializer=UserSerializer(users, many=True)
-#     return Response(serializer.data)
-    # permission_classes= [permissions.IsAuthenticated]
-
-# @api_view(['POST'])
-# @permission_classes([AllowAny])
-# def get_user_by_id(request, user_id):
-#     try:
-#         user = User.objects.get(id=user_id)
-#         serializer = UserSerializer(user)  
-#         return Response(serializer.data)
-#     except User.DoesNotExist:
-#         return Response({'detail': 'User not found'}, status=404)
 
 class RegisterView(APIView):
     def post(self, request):
@@ -60,17 +45,9 @@ class RegisterView(APIView):
         email = data.get('email')
         password = data.get('password')
 
-        if not all([firstname, lastname, username, email, password]):
-            return Response({'error': 'All fields are required'}, status=status.HTTP_400_BAD_REQUEST)
-
-        # if password != confirm_password:
-        #     return Response({'error': "Passwords don't match"}, status=status.HTTP_400_BAD_REQUEST)
-
         if User.objects.filter(username=username).exists():
-            return Response({'error': 'Username already taken'}, status=status.HTTP_400_BAD_REQUEST)
-        elif User.objects.filter(email=email).exists():
-            return Response({'error': 'Email already taken'}, status=status.HTTP_400_BAD_REQUEST)
-
+            return Response({'error': 'Username already exists'}, status=status.HTTP_400_BAD_REQUEST)
+    
         pending_registration = UserCredential.objects.create(
             firstname=firstname,
             lastname=lastname,
@@ -78,7 +55,6 @@ class RegisterView(APIView):
             email=email,
             password=password,
         )
-
         # Return a success message
         return Response({'success': 'Registration data received and pending approval'}, status=status.HTTP_200_OK)
 
@@ -96,7 +72,6 @@ class LoginView(APIView):
 
         if user is not None:
             login(request, user)
-            # Token is already created due to the signal handler
 
             # Retrieve the token associated with the user
             token = Token.objects.get(user=user)
@@ -121,21 +96,7 @@ class UserViewSet(viewsets.ModelViewSet):
     serializer_class = UserSerializer
     permission_classes = [permissions.IsAuthenticated]
 
-# def logout(request):
-    # auth.logout(request)
-    # return redirect("/")
-
-# def pending_approval(request):
-    # Your logic for pending_approval view
-    # return render(request, 'registration_pending.html')
-
-
-# Create your views here.
 class UserCredentialsViewSet(viewsets.ModelViewSet):
-    # queryset = UserCredential.objects.all()
-    # serializer_class = UserCredentialsSerializer
-    # permission_classes = [permissions.IsAuthenticated]  # session authentication
-
     @action(detail=True, methods=['get'])
     def sendRequest(self, request, pk=None):
         user=User.objects.get(pk=pk)# Get the UserCredential instance
@@ -176,14 +137,6 @@ class UserProfileViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(user=user)
 
         return queryset
-    # permission_classes= [permissions.IsAuthenticated]#session authetication
-    # def put(self, request, pk):
-    #     instance = User.objects.get(pk=pk)
-    #     serializer = UserProfileSerializer(instance, data=request.data)
-    #     if serializer.is_valid():
-    #         serializer.save()
-    #         return Response(serializer.data)
-    #     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class UserPostViewSet(viewsets.ModelViewSet):
     parser_classes = (MultiPartParser, FormParser)
@@ -262,3 +215,30 @@ def get_comments(request):
         comments = Comment.objects.all()
     serializer = CommentSerializer(comments, many=True)
     return Response(serializer.data)
+
+class ChatsViewSet(viewsets.ModelViewSet):
+    queryset=Chat.objects.all()
+    serializer_class=ChatsSerializer
+    permission_classes= [permissions.IsAuthenticated]#session authetication
+
+    def get_queryset(self):
+        user = self.request.query_params.get('user', None)
+        queryset = Chat.objects.all()
+
+        if user:
+            queryset = queryset.filter(user=user)
+        return queryset
+
+  
+class LikeCreateAPIView(viewsets.ModelViewSet):
+    # parser_classes = (MultiPartParser, FormParser)
+
+    queryset=Like.objects.all()
+    serializer_class=LikeSerializer
+  
+    def lists(self, request, *args, **kwargs):
+        user_id = kwargs.get('user_id')
+        liked_data = Like.objects.filter(user=user_id)
+        serializer = self.get_serializer(liked_data, many=True)
+        return Response(serializer.data)
+    
