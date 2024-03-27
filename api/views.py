@@ -4,15 +4,18 @@ from rest_framework.views import APIView
 from django.db.models import Q
 from rest_framework import permissions
 from rest_framework.decorators import action
+from rest_framework.response import Response
 from django.http import JsonResponse
+from rest_framework import status
 from rest_framework.parsers import MultiPartParser,FormParser
+from rest_framework.response import Response
 # from rest_framework.generics import ListCreateAPIView, RetrieveAPIView
-from django.core.exceptions import ObjectDoesNotExist
-from userCredential.models import Report, UserCredential, UserPost, UserProfile,FriendRequest,Friendship, Comment, Like
+
+from userCredential.models import Report, UserCredential, UserPost, Media,UserStory ,UserProfile,FriendRequest,Friendship, Comment, Like, Chat
 from api.serializers import (
+    MediaSerializer,
     LikeSerializer,
     ReportSerializer,
-    UserCredentialsSerializer, 
     UserPostSerializer,
       UserProfileSerializer,
       FriendRequestSerializer,
@@ -20,7 +23,10 @@ from api.serializers import (
       UserPostSerializer,
       UserSerializer,
       CommentSerializer,
+      ChatsSerializer,
+      UserStorySerializer
       )
+from api.serializers import *
 from django.contrib.auth.models import User, auth
 from rest_framework.response import Response
 from rest_framework import status
@@ -29,8 +35,6 @@ from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth import authenticate, login
 from rest_framework.permissions import AllowAny
 from rest_framework.decorators import permission_classes, api_view
-
-
 
 class RegisterView(APIView):
     def post(self, request):
@@ -65,7 +69,7 @@ class LoginView(APIView):
         username = data.get('username')
         print(username)
         password = data.get('password')
-
+        
         user = authenticate(request, username=username, password=password)
 
         if user is not None:
@@ -104,13 +108,8 @@ class UserCredentialsViewSet(viewsets.ModelViewSet):
     
     def get_non_friend_users(self,request, user_id):
         try:
-        # Get the logged-in user
             logged_in_user = User.objects.get(pk=user_id)
-
-        # Get the IDs of users who are friends of the logged-in user
             friend_ids = Friendship.objects.filter(user=logged_in_user).values_list('follower_id', flat=True)
-
-        # Get users who are not friends of the logged-in user
             non_friend_users = User.objects.exclude(
                 Q(pk=user_id) | Q(pk__in=friend_ids)
             ).values('id', 'username', 'email')
@@ -133,7 +132,18 @@ class UserProfileViewSet(viewsets.ModelViewSet):
 
         if user:
             queryset = queryset.filter(user=user)
+        return queryset
+    
+class MediaListView(viewsets.ModelViewSet):
+    queryset = Media.objects.all()
+    serializer_class = MediaSerializer
 
+    def get_queryset(self):
+        post = self.request.query_params.get('post', None)
+        queryset = Media.objects.all()
+
+        if post:
+            queryset = queryset.filter(post=post)
         return queryset
 
 class UserPostViewSet(viewsets.ModelViewSet):
@@ -149,8 +159,19 @@ class UserPostViewSet(viewsets.ModelViewSet):
 
         if user:
             queryset = queryset.filter(user=user)
-
         return queryset
+    
+    def perform_create(self, serializer):
+        # Save the shout object
+        shout = serializer.save(user=self.request.user)
+
+        # Get the media files from the request
+        media_files = self.request.FILES.getlist('media', [])
+
+        # If there are media files, save them
+        if media_files:
+            for media_file in media_files:
+                Media.objects.create(shout=shout, file=media_file)
 
 class FriendRequestViewSet(viewsets.ModelViewSet):
     queryset = FriendRequest.objects.all()
@@ -214,22 +235,27 @@ def get_comments(request):
     serializer = CommentSerializer(comments, many=True)
     return Response(serializer.data)
 
-# class LikeCreateAPIView(viewsets.ModelViewSet):
-#     queryset = UserPost.objects.all()
-#     serializer_class = UserPostSerializer
-#     permission_classes = [permissions.IsAuthenticated]  # Session authentication
+@api_view(['DELETE'])
+def delete_comment(request, comment_id):
+    try:
+        comment = Comment.objects.get(id=comment_id)
+        comment.delete()
+        return Response({'message': "Comment deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
+    except Comment.DoesNotExist:
+        return Response({'message': 'Comment not found'}, status=status.HTTP_404_NOT_FOUND)
 
-#     def get_queryset(self):
-#         user = self.request.query_params.get('user', None)
-#         queryset = UserPost.objects.all()
-#         if user:
-#             queryset = queryset.filter(user=user)
-#         return queryset
-    
-# class LikeDetailAPIView(viewsets.ModelViewSet):
-#     queryset = UserPost.objects.all()
-#     serializer_class = UserPostSerializer
-#     permission_classes = [permissions.IsAuthenticated]
+class ChatsViewSet(viewsets.ModelViewSet):
+    queryset=Chat.objects.all()
+    serializer_class=ChatsSerializer
+    permission_classes= [permissions.IsAuthenticated]#session authetication
+
+    def get_queryset(self):
+        user = self.request.query_params.get('user', None)
+        queryset = Chat.objects.all()
+
+        if user:
+            queryset = queryset.filter(user=user)
+        return queryset
 
   
 class LikeCreateAPIView(viewsets.ModelViewSet):
@@ -244,34 +270,18 @@ class LikeCreateAPIView(viewsets.ModelViewSet):
         serializer = self.get_serializer(liked_data, many=True)
         return Response(serializer.data)
     
-    # def get(self, request, user_id):
-    #     liked_post_ids = Like.objects.filter(user=user_id).values_list('id', flat=True)
-    #     liked_posts = UserPost.objects.filter(id__in=liked_post_ids)
-    #     serializer = LikeSerializer(liked_posts, many=True)
-    #     return Response(serializer.data, status=status.HTTP_200_OK)
+class UserStoryViewSet(viewsets.ModelViewSet):
+    parser_classes = (MultiPartParser, FormParser)
 
-  # permission_classes= [permissions.IsAuthenticated]#session authetication
-
-    # def get_queryset(self):
-    #     user = self.request.query_params.get('user', None)
-    #     queryset = Like.objects.all()
-    #     if user:
-    #         queryset = queryset.filter(user=user)
-    #     return queryset
-      
-# @api_view(['GET'])
-# def get_likes(request):
-#     post_id = request.query_params.get('user_pos
-#     if post_id is not None:
-#         comments = Comment.objects.filter(user_post=post_id)
-#     else:
-#         comments = Comment.objects.all()
-#     serializer = CommentSerializer(comments, many=True)
-#     return Response(serializer.data)
+    queryset=UserStory.objects.all()
+    serializer_class=UserStorySerializer
+    permission_classes= [permissions.IsAuthenticated]#session authetication
+    def lists(self, request, *args, **kwargs):
+        user_id = kwargs.get('user_id')
+        liked_data = UserStory.objects.filter(user=user_id)
+        serializer = self.get_serializer(liked_data, many=True)
+        return Response(serializer.data)
     
-
-
-#######Forget password ##########################
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def check_user_exists(request):
@@ -301,4 +311,3 @@ def update_password(request):
         user.set_password(new_password)
         user.save()
         return JsonResponse({'message': 'password updated'})
-##############################3
