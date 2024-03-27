@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from userCredential.models import FriendRequest, Friendship, Report, UserCredential, UserPost, Comment,UserProfile, Like, Chat
+from userCredential.models import FriendRequest, Friendship, Report, UserCredential,Media,UserStory, UserPost, Comment,UserProfile, Like, Chat
 from django.contrib.auth.models import User
 from django.contrib.auth import get_user_model
 
@@ -21,11 +21,11 @@ class UserProfileSerializer(serializers.ModelSerializer):
         fields="__all__"
 
 class  UserPostSerializer(serializers.ModelSerializer):
-    media=serializers.FileField(required=False)
+    # media=serializers.FileField(required=False)
     class Meta:
         model=UserPost
         fields="__all__"
-
+        
 class CommentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Comment
@@ -58,4 +58,15 @@ class ReportSerializer(serializers.ModelSerializer):
     class Meta:
         model = Report
         fields = "__all__"
+
+class MediaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Media
+        fields = "__all__"
+    
+class  UserStorySerializer(serializers.ModelSerializer):
+    media=serializers.FileField(required=False)
+    class Meta:
+        model=UserStory
+        fields="__all__"
        
