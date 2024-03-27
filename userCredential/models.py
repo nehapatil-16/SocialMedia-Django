@@ -1,5 +1,5 @@
 from django.db import models
-from datetime import date 
+from datetime import date
 from django.utils import timezone 
 from django.conf import settings
 from django.db.models.signals import post_save
@@ -46,18 +46,35 @@ class UserProfile(models.Model):
 class UserPost(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     text = models.TextField(blank=True)
-    media = models.FileField(upload_to='static/media/', blank=True, null=True)
-    date_of_Post = models.DateField(default=date(1900, 1, 1))
+    # media = models.FileField(upload_to='static/media/', blank=True, null=True)
+    date_of_post = models.DateField(default=date(1900, 1, 1))
 
     def __str__(self):
         return f"Post by {self.user.username}"
 
+class Media(models.Model):
+    post = models.ForeignKey(UserPost, related_name='media', on_delete=models.CASCADE)
+    file = models.FileField(upload_to='static/media/', blank=True, null=True)
+
+class Like(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, default=0)
+    user_post = models.ForeignKey(UserPost, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(default=timezone.now)
 
 class Comment(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, default=0)
     user_post = models.ForeignKey(UserPost, on_delete=models.CASCADE)
     content = models.TextField()
     created_at = models.DateTimeField(default=timezone.now)
+
+class Chat(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    username = models.ForeignKey(User, related_name='chats_username', on_delete=models.CASCADE)
+    receiver = models.CharField(max_length=30, default='')
+    chats = models.CharField(max_length=255)
+
+    def __str__(self):
+        return f'{self.user.username} - {self.username.username}'
 
 class FriendRequest(models.Model):
     from_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_friend_requests')
@@ -77,4 +94,12 @@ class Report(models.Model):
 
     def __str__(self):
         return f"Report for Post {self.user_post} by User {self.user.id}"
-
+    
+class UserStory(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    media = models.FileField(upload_to='static/story/', blank=True, null=True)
+    date_of_Post = models.DateField(default=timezone.now)
+    
+    def __str__(self):
+        return f"Post by {self.user.username}"
+    

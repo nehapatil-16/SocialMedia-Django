@@ -5,9 +5,13 @@ from userCredential.models import (
     Report,
     UserCredential, 
     UserPost,
+    Media,
     UserProfile,
     FriendRequest,
     Friendship,
+    Like,
+    Chat,
+    UserStory,
     )
 from django.contrib.auth.models import User
 
@@ -39,25 +43,14 @@ approve_registration.short_description = "Approve selected registration requests
 class PendingRegistrationAdmin(admin.ModelAdmin):
     list_display = ('username', 'email', 'firstname', 'lastname')
     actions = [approve_registration]
-    
-# Register your models here.
-# class UserCredentialAdmin(admin.ModelAdmin):
-#     list_display = ['username', 'email', 'is_approved']
-#     list_filter = ['is_approved']
-#     actions = ['approve_users', 'reject_users']
 
-#     def approve_users(self, request, queryset):
-#         queryset.update(is_approved=True)
-
-#     def reject_users(self, request, queryset):
-#         queryset.update(is_approved=False)
-
-# admin.site.register(UserCredential, UserCredentialAdmin)
-
-# admin.site.register(UserCredential)
 admin.site.register(UserProfile)
 admin.site.register(UserPost)
+admin.site.register(Media)
 admin.site.register(FriendRequest)
 admin.site.register(Friendship)
 admin.site.register(Comment)
 admin.site.register(Report)
+admin.site.register(Like)
+admin.site.register(Chat)
+admin.site.register(UserStory)
